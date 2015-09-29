@@ -506,7 +506,8 @@ void Backend::tonemapLinear(Vector* out, Vector* in, int idx, float scaleMin, fl
 Backend::Timer* Backend::allocTimer(void)
 {
     Timer* timer = new Timer;
-    timer->beginTicks = 0;
+    timer->beginTicks_s = 0;
+    timer->beginTicks_ns = 0;
     return timer;
 }
 
@@ -537,7 +538,6 @@ void Backend::beginTimer(Timer* timer)
 float Backend::endTimer(Timer* timer)
 {
     assert(timer);
-    LARGE_INTEGER ticks;
     struct timespec tp;
     if (!clock_gettime(CLOCK_MONOTONIC, &tp))
     {
