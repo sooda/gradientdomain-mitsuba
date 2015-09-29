@@ -28,7 +28,7 @@
 #include <malloc.h>
 #include <stdio.h>
 
-#include <windows.h>
+#include <time.h>
 #undef min
 #undef max
 
@@ -38,13 +38,6 @@ using namespace poisson;
 
 Backend::Backend(void)
 {
-    LARGE_INTEGER freq;
-    if (!QueryPerformanceFrequency(&freq))
-    {
-        printf("QueryPerformanceFrequency() failed!\n");
-        exit(0);
-    }
-    m_timerTicksToSecs = max(1.0 / (double)freq.QuadPart, 0.0);
 }
 
 //------------------------------------------------------------------------
@@ -528,13 +521,14 @@ void Backend::freeTimer(Timer* timer)
 void Backend::beginTimer(Timer* timer)
 {
     assert(timer);
-    LARGE_INTEGER ticks;
-    if (!QueryPerformanceCounter(&ticks))
+    struct timespec tp;
+    if (!clock_gettime(CLOCK_MONOTONIC, &tp))
     {
-        printf("QueryPerformanceFrequency() failed!\n");
+        printf("clock_gettime() failed!\n");
         exit(0);
     }
-    timer->beginTicks = ticks.QuadPart;
+    timer->beginTicks_s = tp.tv_sec;
+    timer->beginTicks_ns = tp.tv_nsec;
 }
 
 //------------------------------------------------------------------------
@@ -543,12 +537,13 @@ float Backend::endTimer(Timer* timer)
 {
     assert(timer);
     LARGE_INTEGER ticks;
-    if (!QueryPerformanceCounter(&ticks))
+    struct timespec tp;
+    if (!clock_gettime(CLOCK_MONOTONIC, &tp))
     {
-        printf("QueryPerformanceFrequency() failed!\n");
+        printf("clock_gettime() failed!\n");
         exit(0);
     }
-    return (float)((double)(ticks.QuadPart - timer->beginTicks) * m_timerTicksToSecs);
+    return (float)(tp.tv_sec - timer->beginTicks_s + 1e-9 * (tp.tv_nsec - timer->beginTicks_ns));
 }
 
 //------------------------------------------------------------------------

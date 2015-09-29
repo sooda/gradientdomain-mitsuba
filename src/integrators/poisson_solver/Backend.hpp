@@ -54,7 +54,8 @@ public:
 
     struct Timer
     {
-        __int64         beginTicks;
+        long            beginTicks_s;
+        long            beginTicks_ns;
     };
 
 public:
@@ -102,9 +103,6 @@ public:
 private:
                         Backend             (const Backend&); // forbidden
     Backend&            operator=           (const Backend&); // forbidden
-
-private:
-    double              m_timerTicksToSecs;
 };
 
 //------------------------------------------------------------------------
