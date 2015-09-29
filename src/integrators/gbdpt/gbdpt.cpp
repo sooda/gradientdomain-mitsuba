@@ -248,7 +248,7 @@ public:
         return true;
     }
 
-    void GBDPTIntegrator::prepareDataForSolver(float w, float* out, Float * data, int len, Float *data2, int offset){
+    void prepareDataForSolver(float w, float* out, Float * data, int len, Float *data2, int offset){
 
         for (int i = 0; i < len; i++)
             out[i] = w*float(data[i]);
@@ -266,7 +266,7 @@ public:
         }
     }
 
-    void GBDPTIntegrator::setBitmapFromArray(ref<Bitmap> &bitmap, float *img)
+    void setBitmapFromArray(ref<Bitmap> &bitmap, float *img)
     {
         int x, y;
         Float tmp[3];
