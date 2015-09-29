@@ -602,16 +602,22 @@ void Solver::log(const std::string& message)
 
 void Solver::log(const char* fmt, ...)
 {
+#warning "copypasta lololol"
     va_list args;
+
     va_start(args, fmt);
     int len = vsnprintf(nullptr, 0, fmt, args);
-    std::string str;
+    va_end(args);
+
 #warning "this doesn't look really sane but whatever"
+    std::string str;
     str.resize(len);
+
+    va_start(args, fmt);
     vsnprintf((char*)str.c_str(), len + 1, fmt, args);
     va_end(args);
 
-	log(str);
+    log(str);
 }
 
 //------------------------------------------------------------------------
