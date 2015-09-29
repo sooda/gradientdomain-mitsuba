@@ -292,7 +292,7 @@ void Solver::setupBackend(void)
     // Otherwise => error.
 
     if (!m_backend)
-        fail("Invalid backend specified '%s'!", m_params.backend);
+        fail("Invalid backend specified '%s'!", m_params.backend.c_str());
 
     // Allocate backend objects.
 
