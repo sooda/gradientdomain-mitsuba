@@ -76,7 +76,7 @@ using namespace poisson;
 static int getPhysicalCoreCount() {
     // TODO: Use Boost 1.56 and boost::thread::physical_concurrency() for all platforms.
 #ifndef _WIN32
-    return 1;
+    return 4;
 #else
     static int coreCount = -1;
 
