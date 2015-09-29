@@ -863,6 +863,7 @@ bool ManifoldPerturbation::generateOffsetPathGBDPT(Path &source, Path &proposal,
 	proposal.vertex(a) = proposal.vertex(a)->clone(m_pool);
 	proposal.vertex(c) = proposal.vertex(c)->clone(m_pool); 
 
+	int walkSuccess = true;
 
 	/* Sample the first vertex */
 	if (!perturbDirection(source, proposal, step, a, offset, mode, false/*lightPath*/)){
@@ -877,7 +878,6 @@ bool ManifoldPerturbation::generateOffsetPathGBDPT(Path &source, Path &proposal,
 		goto fail; 
 	statsUsedManifold.incrementBase();
 
-	int walkSuccess = true;
 	/*manifold walk between b .. c*/
 	if (std::abs(b - c) > 1) {
 		walkSuccess = manifoldWalk(source, proposal, step, b, c);
