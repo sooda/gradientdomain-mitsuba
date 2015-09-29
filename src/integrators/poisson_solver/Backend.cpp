@@ -524,9 +524,9 @@ void Backend::beginTimer(Timer* timer)
 {
     assert(timer);
     struct timespec tp;
-    if (!clock_gettime(CLOCK_MONOTONIC, &tp))
+    if (clock_gettime(CLOCK_MONOTONIC, &tp) < 0)
     {
-        printf("clock_gettime() failed!\n");
+        printf("clock_gettime() failed! %d\n", errno);
         exit(0);
     }
     timer->beginTicks_s = tp.tv_sec;
@@ -539,9 +539,9 @@ float Backend::endTimer(Timer* timer)
 {
     assert(timer);
     struct timespec tp;
-    if (!clock_gettime(CLOCK_MONOTONIC, &tp))
+    if (clock_gettime(CLOCK_MONOTONIC, &tp) < 0)
     {
-        printf("clock_gettime() failed!\n");
+        printf("clock_gettime() failed! %d\n", errno);
         exit(0);
     }
     return (float)(tp.tv_sec - timer->beginTicks_s + 1e-9 * (tp.tv_nsec - timer->beginTicks_ns));
