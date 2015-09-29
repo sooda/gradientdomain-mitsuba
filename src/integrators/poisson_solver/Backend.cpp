@@ -27,6 +27,7 @@
 #include "Backend.hpp"
 #include <malloc.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <time.h>
 #undef min

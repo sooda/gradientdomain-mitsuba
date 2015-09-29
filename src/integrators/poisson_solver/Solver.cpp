@@ -42,6 +42,7 @@
 //#include "lodepng.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 using namespace poisson;
 
