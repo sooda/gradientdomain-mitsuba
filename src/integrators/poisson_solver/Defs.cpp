@@ -48,12 +48,13 @@ void poisson::fail(const char* fmt, ...)
 
 std::string poisson::sprintf(const char* fmt, ...)
 {
+#warning "copypasta lololol"
     va_list args;
     va_start(args, fmt);
-    int len = _vscprintf(fmt, args);
+    int len = vsnprintf(nullptr, 0, fmt, args);
     std::string str;
     str.resize(len);
-    vsprintf_s((char*)str.c_str(), len + 1, fmt, args);
+    vsnprintf((char*)str.c_str(), len + 1, fmt, args);
     va_end(args);
     return str;
 }
