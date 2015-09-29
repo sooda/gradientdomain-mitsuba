@@ -604,10 +604,11 @@ void Solver::log(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int len = _vscprintf(fmt, args);
+    int len = vsnprintf(nullptr, 0, fmt, args);
     std::string str;
+#warning "this doesn't look really sane but whatever"
     str.resize(len);
-    vsprintf_s((char*)str.c_str(), len + 1, fmt, args);
+    vsnprintf((char*)str.c_str(), len + 1, fmt, args);
     va_end(args);
 
 	log(str);
