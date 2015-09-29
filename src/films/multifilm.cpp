@@ -543,7 +543,7 @@ public:
 		return fs::exists(filename);
 	}
 
-	std::string MultiFilm::toString() const {
+	std::string toString() const {
 		std::ostringstream oss;
 		oss << "multiFilm[" << endl
 			<< "  size = " << m_size.toString() << "," << endl
