@@ -195,6 +195,7 @@ public:
 		return true;
 
 		bad_sample:
+#if 0
 		{
 			std::ostringstream oss;
 			oss << "Invalid sample value : [";
@@ -206,6 +207,7 @@ public:
 			oss << "]";
 			Log(EWarn, "%s", oss.str().c_str());
 		}
+#endif
 		return false;
 	}
 
