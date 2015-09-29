@@ -354,6 +354,11 @@ struct BSDFSampleResult {
 	Float pdf;                ///< PDF of the BSDF sample.
 };
 
+// XXX
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args) {
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 /// The actual Gradient Path Tracer implementation.
 class GradientPathTracer {
@@ -444,6 +449,13 @@ public:
 	/// This is the core of the rendering algorithm.
 	void evaluate(RayState& main, RayState* shiftedRays, int secondaryCount, Spectrum& out_veryDirect) {
 		const Scene *scene = main.rRec.scene;
+#warning GOTO GOTO GOTO AAAAAAA
+		EMeasure measure;
+		Intersection batman;
+		std::unique_ptr<BSDFSamplingRecord> bRec(make_unique<BSDFSamplingRecord>(batman, nullptr));
+		Vector3 outgoingDirection;
+		HalfVectorShiftResult shiftResult;
+
 		
 		// Perform the first ray intersection for the base path (or ignore if the intersection has already been provided).
 		main.rRec.rayIntersect(main.ray);
@@ -593,7 +605,6 @@ public:
 					main.addRadiance(main.throughput * (mainBSDFValue * mainEmitterRadiance), mainWeightNumerator / (D_EPSILON + mainWeightDenominator));
 #endif
 
-
 					// Strict normals check to produce the same results as bidirectional methods when normal mapping is used.
 					if(!m_config->m_strictNormals || dot(main.rRec.its.geoFrame.n, dRec.d) * Frame::cosTheta(mainBRec.wo) > 0) {
 						// The base path is good. Add radiance differences to offset paths.
@@ -630,12 +641,12 @@ public:
 									// Follow the base path. The current vertex is shared, but the incoming directions differ.
 									Vector3 incomingDirection = normalize(shifted.rRec.its.p - main.rRec.its.p);
 
-									BSDFSamplingRecord bRec(main.rRec.its, main.rRec.its.toLocal(incomingDirection), main.rRec.its.toLocal(dRec.d), ERadiance);
+									bRec = make_unique<BSDFSamplingRecord>(main.rRec.its, main.rRec.its.toLocal(incomingDirection), main.rRec.its.toLocal(dRec.d), ERadiance);
 
 									// Sample the BSDF.
-									Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && mainEmitterVisible) ? mainBSDF->pdf(bRec) : 0; // The BSDF sampler can not sample occluded path segments.
+									Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && mainEmitterVisible) ? mainBSDF->pdf(*bRec) : 0; // The BSDF sampler can not sample occluded path segments.
 									Float shiftedDRecPdf = dRec.pdf;
-									Spectrum shiftedBsdfValue = mainBSDF->eval(bRec);
+									Spectrum shiftedBsdfValue = mainBSDF->eval(*bRec);
 									Spectrum shiftedEmitterRadiance = mainEmitterRadiance;
 									Float jacobian = (Float)1;
 
@@ -671,17 +682,17 @@ public:
 										Vector emitterDirection = (dRec.p - shifted.rRec.its.p) / sqrt(shiftedDistanceSquared);
 										Float shiftedOpposingCosine = -dot(dRec.n, emitterDirection);
 
-										BSDFSamplingRecord bRec(shifted.rRec.its, shifted.rRec.its.toLocal(emitterDirection), ERadiance);
+										bRec = make_unique<BSDFSamplingRecord>(shifted.rRec.its, shifted.rRec.its.toLocal(emitterDirection), ERadiance);
 										
 										// Strict normals check, to make the output match with bidirectional methods when normal maps are present.
-										if (m_config->m_strictNormals && dot(shifted.rRec.its.geoFrame.n, emitterDirection) * Frame::cosTheta(bRec.wo) < 0) {
+										if (m_config->m_strictNormals && dot(shifted.rRec.its.geoFrame.n, emitterDirection) * Frame::cosTheta(bRec->wo) < 0) {
 											// Invalid, non-samplable offset path.
 											shiftSuccessful = false;
 											goto light_sample_shift_failed;
 										}
 
-										Spectrum shiftedBsdfValue = shiftedBSDF->eval(bRec);
-										Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && shiftedEmitterVisible) ? shiftedBSDF->pdf(bRec) : 0;
+										Spectrum shiftedBsdfValue = shiftedBSDF->eval(*bRec);
+										Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && shiftedEmitterVisible) ? shiftedBSDF->pdf(*bRec) : 0;
 										Float jacobian = std::abs(shiftedOpposingCosine * mainDistanceSquared) / (Epsilon + std::abs(mainOpposingCosine * shiftedDistanceSquared));
 										
 										// Power heuristic between light sample from base, BSDF sample from base, light sample from offset, BSDF sample from offset.
@@ -849,14 +860,14 @@ light_sample_shift_failed:
 					} else if(shifted.connection_status == RAY_RECENTLY_CONNECTED) {
 						// Recently connected - follow the base path but evaluate BSDF to the new direction.
 						Vector3 incomingDirection = normalize(shifted.rRec.its.p - main.ray.o);
-						BSDFSamplingRecord bRec(previousMainIts, previousMainIts.toLocal(incomingDirection), previousMainIts.toLocal(main.ray.d), ERadiance);
+						bRec = make_unique<BSDFSamplingRecord>(previousMainIts, previousMainIts.toLocal(incomingDirection), previousMainIts.toLocal(main.ray.d), ERadiance);
 
 						// Note: mainBSDF is the BSDF at previousMainIts, which is the current position of the offset path.
 
-						EMeasure measure = (mainBsdfResult.bRec.sampledType & BSDF::EDelta) ? EDiscrete : ESolidAngle; 
+						measure = (mainBsdfResult.bRec.sampledType & BSDF::EDelta) ? EDiscrete : ESolidAngle; 
 
-						Spectrum shiftedBsdfValue = mainBSDF->eval(bRec, measure);
-						Float shiftedBsdfPdf = mainBSDF->pdf(bRec, measure);
+						Spectrum shiftedBsdfValue = mainBSDF->eval(*bRec, measure);
+						Float shiftedBsdfPdf = mainBSDF->pdf(*bRec, measure);
 
 						Float shiftedLumPdf = mainLumPdf;
 						Spectrum shiftedEmitterRadiance = mainEmitterRadiance;
@@ -907,19 +918,19 @@ light_sample_shift_failed:
 								Vector3 incomingDirection = -shifted.ray.d;
 								Vector3 outgoingDirection = shiftResult.wo;
 
-								BSDFSamplingRecord bRec(shifted.rRec.its, shifted.rRec.its.toLocal(incomingDirection), shifted.rRec.its.toLocal(outgoingDirection), ERadiance);
+								bRec = make_unique<BSDFSamplingRecord>(shifted.rRec.its, shifted.rRec.its.toLocal(incomingDirection), shifted.rRec.its.toLocal(outgoingDirection), ERadiance);
 
 								// Strict normals check.
-								if(m_config->m_strictNormals && dot(outgoingDirection, shifted.rRec.its.geoFrame.n) * Frame::cosTheta(bRec.wo) <= 0) {
+								if(m_config->m_strictNormals && dot(outgoingDirection, shifted.rRec.its.geoFrame.n) * Frame::cosTheta(bRec->wo) <= 0) {
 									shifted.alive = false;
 									goto shift_failed;
 								}
 
 								// Evaluate the BRDF to the new direction.
-								EMeasure measure = (shiftedBSDF->getType() & BSDF::EDelta) ? EDiscrete : ESolidAngle;
+								measure = (shiftedBSDF->getType() & BSDF::EDelta) ? EDiscrete : ESolidAngle;
 
-								Spectrum shiftedBsdfValue = shiftedBSDF->eval(bRec, measure);
-								Float shiftedBsdfPdf = shiftedBSDF->pdf(bRec, measure);
+								Spectrum shiftedBsdfValue = shiftedBSDF->eval(*bRec, measure);
+								Float shiftedBsdfPdf = shiftedBSDF->pdf(*bRec, measure);
 
 								// Update throughput and pdf.
 								shifted.throughput *= shiftedBsdfValue * shiftResult.jacobian;
@@ -989,7 +1000,7 @@ light_sample_shift_failed:
 							SAssert(fabs(shifted.ray.d.lengthSquared() - 1) < 0.000001);
 
 							// Apply the local shift.
-							HalfVectorShiftResult shiftResult = halfVectorShift(mainBsdfResult.bRec.wi, mainBsdfResult.bRec.wo, shifted.rRec.its.toLocal(-shifted.ray.d), mainBSDF->getEta(), shiftedBSDF->getEta());
+							shiftResult = halfVectorShift(mainBsdfResult.bRec.wi, mainBsdfResult.bRec.wo, shifted.rRec.its.toLocal(-shifted.ray.d), mainBSDF->getEta(), shiftedBSDF->getEta());
 
 							if(mainBsdfResult.bRec.sampledType & BSDF::EDelta) {
 								// Dirac delta integral is a point evaluation - no Jacobian determinant!
@@ -1007,14 +1018,14 @@ light_sample_shift_failed:
 								goto half_vector_shift_failed;
 							}
 
-							Vector3 outgoingDirection = shifted.rRec.its.toWorld(tangentSpaceOutgoingDirection);
+							outgoingDirection = shifted.rRec.its.toWorld(tangentSpaceOutgoingDirection);
 
 							// Update throughput and pdf.
-							BSDFSamplingRecord bRec(shifted.rRec.its, tangentSpaceIncomingDirection, tangentSpaceOutgoingDirection, ERadiance);
-							EMeasure measure = (mainBsdfResult.bRec.sampledType & BSDF::EDelta) ? EDiscrete : ESolidAngle;
+							bRec = make_unique<BSDFSamplingRecord>(shifted.rRec.its, tangentSpaceIncomingDirection, tangentSpaceOutgoingDirection, ERadiance);
+							measure = (mainBsdfResult.bRec.sampledType & BSDF::EDelta) ? EDiscrete : ESolidAngle;
 
-							shifted.throughput *= shiftedBSDF->eval(bRec, measure);
-							shifted.pdf *= shiftedBSDF->pdf(bRec, measure);
+							shifted.throughput *= shiftedBSDF->eval(*bRec, measure);
+							shifted.pdf *= shiftedBSDF->pdf(*bRec, measure);
 
 							if(shifted.pdf == Float(0)) {
 								// Offset path is invalid!
@@ -1023,7 +1034,7 @@ light_sample_shift_failed:
 							}
 
 							// Strict normals check to produce the same results as bidirectional methods when normal mapping is used.			
-							if(m_config->m_strictNormals && dot(outgoingDirection, shifted.rRec.its.geoFrame.n) * Frame::cosTheta(bRec.wo) <= 0) {
+							if(m_config->m_strictNormals && dot(outgoingDirection, shifted.rRec.its.geoFrame.n) * Frame::cosTheta(bRec->wo) <= 0) {
 								shifted.alive = false;
 								goto half_vector_shift_failed;
 							}
