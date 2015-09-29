@@ -26,6 +26,7 @@
 
 #pragma once
 #include "Defs.hpp"
+#include <chrono>
 
 namespace poisson
 {
@@ -54,8 +55,7 @@ public:
 
     struct Timer
     {
-        long            beginTicks_s;
-        long            beginTicks_ns;
+        std::chrono::time_point<std::chrono::high_resolution_clock> begin;
     };
 
 public:

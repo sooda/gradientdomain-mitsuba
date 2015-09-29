@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <time.h>
 #undef min
 #undef max
 
@@ -505,10 +504,7 @@ void Backend::tonemapLinear(Vector* out, Vector* in, int idx, float scaleMin, fl
 
 Backend::Timer* Backend::allocTimer(void)
 {
-    Timer* timer = new Timer;
-    timer->beginTicks_s = 0;
-    timer->beginTicks_ns = 0;
-    return timer;
+    return new Timer();
 }
 
 //------------------------------------------------------------------------
@@ -523,14 +519,7 @@ void Backend::freeTimer(Timer* timer)
 void Backend::beginTimer(Timer* timer)
 {
     assert(timer);
-    struct timespec tp;
-    if (clock_gettime(CLOCK_MONOTONIC, &tp) < 0)
-    {
-        printf("clock_gettime() failed! %d\n", errno);
-        exit(0);
-    }
-    timer->beginTicks_s = tp.tv_sec;
-    timer->beginTicks_ns = tp.tv_nsec;
+    timer->begin = std::chrono::high_resolution_clock::now();
 }
 
 //------------------------------------------------------------------------
@@ -538,13 +527,9 @@ void Backend::beginTimer(Timer* timer)
 float Backend::endTimer(Timer* timer)
 {
     assert(timer);
-    struct timespec tp;
-    if (clock_gettime(CLOCK_MONOTONIC, &tp) < 0)
-    {
-        printf("clock_gettime() failed! %d\n", errno);
-        exit(0);
-    }
-    return (float)(tp.tv_sec - timer->beginTicks_s + 1e-9 * (tp.tv_nsec - timer->beginTicks_ns));
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> seconds = end - timer->begin;
+    return seconds.count();
 }
 
 //------------------------------------------------------------------------
